@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Sovereign.Sample.Jobs.JobMetadata;
+using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
 
-namespace Microsoft.Sovereign.Sample.Jobs.Jobs
+namespace Microsoft.AzureArcData.Sample.Jobs.Jobs
 {
     public class CheckpointingJob : JobCallback<CheckpointingJobMetadata>
     {
@@ -30,13 +30,15 @@ namespace Microsoft.Sovereign.Sample.Jobs.Jobs
             if (currentMetadata.CurrentStep > currentMetadata.MaxSteps)
             {
                 executionResult.Status = JobExecutionStatus.Succeeded;
-                executionResult.Message = $"Hello {Metadata?.CallerName}! CheckpointingJob succeeded! JobNumber: {Interlocked.Increment(ref jobRuns)} after {currentMetadata.CurrentStep} steps.";
+                executionResult.Message =
+                    $"Hello {Metadata?.CallerName}! CheckpointingJob succeeded! JobNumber: {Interlocked.Increment(ref jobRuns)} after {currentMetadata.CurrentStep} steps.";
             }
             else
             {
                 executionResult.Status = JobExecutionStatus.Postponed;
                 executionResult.NextMetadata = JsonSerializer.Serialize(currentMetadata);
-                executionResult.Message = $"Hello {Metadata?.CallerName}! CheckpointingJob rescheduled itself! JobNumber: {Interlocked.Increment(ref jobRuns)} after {currentMetadata.CurrentStep}/{currentMetadata.MaxSteps} steps.";
+                executionResult.Message =
+                    $"Hello {Metadata?.CallerName}! CheckpointingJob rescheduled itself! JobNumber: {Interlocked.Increment(ref jobRuns)} after {currentMetadata.CurrentStep}/{currentMetadata.MaxSteps} steps.";
                 executionResult.NextExecutionTime = DateTime.UtcNow;
             }
 

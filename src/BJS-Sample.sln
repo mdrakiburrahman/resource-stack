@@ -7,9 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BJSAdmin", "BJS-Admin\BJSAd
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BJSWorker", "BJS-Job\BJSWorker.csproj", "{33ED26F0-D4C1-4674-B713-BD2CA6A3EA56}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Sovereign.Sample.Jobs", "Jobs\Microsoft.Sovereign.Sample.Jobs.csproj", "{C278D9F1-9204-4F29-A3AA-69E562E8B705}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AzureArcData.Sample.Jobs", "Jobs\Microsoft.AzureArcData.Sample.Jobs.csproj", "{C278D9F1-9204-4F29-A3AA-69E562E8B705}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Sovereign.Sample.Common", "Microsoft.Sovereignty.Sample.Common\Microsoft.Sovereign.Sample.Common.csproj", "{60D409D6-F12D-4D6B-99BE-D8DA471F57FE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AzureArcData.Sample.Common", "Microsoft.AzureArcData.Sample.Common\Microsoft.AzureArcData.Sample.Common.csproj", "{60D409D6-F12D-4D6B-99BE-D8DA471F57FE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{ACE1E96D-E1AA-45A1-A72B-59385B486E19}"
 	ProjectSection(SolutionItems) = preProject

@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Sovereign.Sample.Jobs.JobMetadata;
+using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
 
-namespace Microsoft.Sovereign.Sample.Jobs.Jobs
+namespace Microsoft.AzureArcData.Sample.Jobs.Jobs
 {
     public class AlwaysSucceedJob : JobCallback<AlwaysSucceedJobMetadata>
     {
@@ -20,7 +20,8 @@ namespace Microsoft.Sovereign.Sample.Jobs.Jobs
             var executionResult = new JobExecutionResult
             {
                 Status = JobExecutionStatus.Succeeded,
-                Message = $"Hello {Metadata?.CallerName}! AlwaysSucceedJob succeeded! JobNumber: {Interlocked.Increment(ref jobRuns)}",
+                Message =
+                    $"Hello {Metadata?.CallerName}! AlwaysSucceedJob succeeded! JobNumber: {Interlocked.Increment(ref jobRuns)}",
             };
 
             return executionResult;

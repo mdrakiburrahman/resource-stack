@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Sovereign.Sample.Jobs.JobMetadata
+﻿namespace Microsoft.AzureArcData.Sample.Jobs.JobMetadata
 {
     public class CheckpointingJobMetadata
     {

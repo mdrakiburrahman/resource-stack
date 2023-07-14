@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.Sovereign.Sample.Jobs.JobMetadata;
+using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
 
-namespace Microsoft.Sovereign.Sample.Jobs.Jobs
+namespace Microsoft.AzureArcData.Sample.Jobs.Jobs
 {
     public class SometimesFailsJob : JobCallback<SometimesFailsJobMetadata>
     {
@@ -30,7 +30,8 @@ namespace Microsoft.Sovereign.Sample.Jobs.Jobs
                 executionResult = new JobExecutionResult
                 {
                     Status = JobExecutionStatus.Failed,
-                    Message = $"Hello {callerName}, SometimesFailsJob failed! JobNumber: {runNumber}"
+                    Message =
+                        $"Hello {callerName}, SometimesFailsJob failed! JobNumber: {runNumber}"
                 };
             }
             else
@@ -38,9 +39,9 @@ namespace Microsoft.Sovereign.Sample.Jobs.Jobs
                 executionResult = new JobExecutionResult
                 {
                     Status = JobExecutionStatus.Succeeded,
-                    Message = $"Hello {callerName}, SometimesFailsJob succeeded! JobNumber: {runNumber}"
+                    Message =
+                        $"Hello {callerName}, SometimesFailsJob succeeded! JobNumber: {runNumber}"
                 };
-
             }
             return executionResult;
         }

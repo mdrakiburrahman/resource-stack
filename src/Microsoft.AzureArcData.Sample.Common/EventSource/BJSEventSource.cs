@@ -2,7 +2,7 @@
 using System.Net;
 using System.Runtime.CompilerServices;
 
-namespace Microsoft.Sovereign.Sample.Common.EventSource
+namespace Microsoft.AzureArcData.Sample.Common.EventSource
 {
     public class BJSEventSource : IBackgroundJobsEventSource
     {

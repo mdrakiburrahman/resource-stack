@@ -6,6 +6,7 @@ using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
 using Microsoft.AzureArcData.Sample.Common.EventSource;
 using Newtonsoft.Json;
 using Microsoft.AzureArcData.Sample.Common.Constants;
+using Microsoft.WindowsAzure.ResourceStack.Common.Storage;
 
 JobManagementClient jobManagementClient = new JobManagementClient(
     documentServiceEndpoint: new Uri(
@@ -18,7 +19,7 @@ JobManagementClient jobManagementClient = new JobManagementClient(
     encryptionUtility: null
 );
 
-// Job which is always succeeding and is repeated 5 times
+// 1. Job which is always succeeding and is repeated 5 times
 //
 var newJob = JobBuilder
     .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
@@ -31,7 +32,7 @@ var newJob = JobBuilder
 
 await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 
-// Job which is sometimes failing is repeated 5 times and retries failed runs for 3 times
+// 2. Job which is sometimes failing is repeated 5 times and retries failed runs for 3 times
 //
 newJob = JobBuilder
     .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
@@ -46,7 +47,7 @@ newJob = JobBuilder
 
 await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 
-// Job which is always succeeding, is never repeated and never retried
+// 3. Job which is always succeeding, is never repeated and never retried
 //
 newJob = JobBuilder
     .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
@@ -61,7 +62,7 @@ await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 
 for (int i = 0; i < 3; i++)
 {
-    // Job which is using checkpointing
+    // 4. Job which is using checkpointing
     //
     newJob = JobBuilder
         .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
@@ -82,6 +83,58 @@ for (int i = 0; i < 3; i++)
     await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 }
 
+// 5. Sequencer Job:
+//
+//                              +---------------------+
+//                              | SometimesFailsJob   |
+//                              +---------------------+
+//                                        ^
+//  +------------------+                  |
+//  | AlwaysSucceedJob |-------------------
+//  +------------------+                  |
+//                                        v
+//                              +-----------------------+
+//                              | CheckpointingJob      |
+//                              +-----------------------+
+//
+//
+var sequencerBuilder = SequencerBuilder
+    .Create(
+        JobConstants.jobPartitionName,
+        StorageUtility.EscapeStorageKey(Guid.NewGuid().ToString())
+    )
+    .WithAction(
+        "AlwaysSucceedJob",
+        typeof(AlwaysSucceedJob).FullName,
+        JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
+    )
+    .WithAction(
+        "SometimesFailsJob",
+        typeof(SometimesFailsJob).FullName,
+        JsonConvert.SerializeObject(
+            new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 0 }
+        )
+    )
+    .WithAction(
+        "CheckpointingJob",
+        typeof(CheckpointingJob).FullName,
+        JsonConvert.SerializeObject(
+            new CheckpointingJobMetadata
+            {
+                CallerName = "AzureArcData",
+                CurrentStep = 0,
+                MaxSteps = -1
+            }
+        )
+    )
+    .WithDependency("AlwaysSucceedJob", "SometimesFailsJob")
+    .WithDependency("AlwaysSucceedJob", "CheckpointingJob")
+    .WithFlags(SequencerFlags.DeleteSequencerIfCompleted);
+
+await jobManagementClient
+    .CreateSequencer(SequencerType.Distributed, sequencerBuilder)
+    .ConfigureAwait(false);
+
 // Print state
 //
 while (true)
@@ -96,13 +149,13 @@ while (true)
         .ForEach(job =>
         {
             Console.WriteLine(
-                $"JobID: {job.JobId} | CallBack: {job.Callback} | MetaData: {job.Metadata} | Status {job.State}\n"
+                $"JobID: {job.JobId} | CallBack: {job.Callback} | MetaData: {job.Metadata} | Status: {job.State}\n"
                     + $"\tLastExecutionTime: {job.LastExecutionTime} | LastExecutionStatus: {job.LastExecutionStatus} | NextExecutionTime: {job.NextExecutionTime}\n"
                     + $"\tRun: {job.CurrentRepeatCount}/{job.RepeatCount} | Interval: {job.RepeatInterval / 1000}ms"
             );
-            if (job.State == JobState.Completed)
+            if (job.State == JobState.Completed || job.LastExecutionStatus == JobExecutionStatus.Succeeded)
             {
-                Console.WriteLine($"\nDeleting job {job.JobId}, as it's marked complete");
+                Console.WriteLine($"\nDeleting job {job.JobId}, as it's marked with State {job.State} and Last Execution Status: {job.LastExecutionStatus}");
                 jobManagementClient.DeleteJob(JobConstants.jobPartitionName, job.JobId);
             }
         });

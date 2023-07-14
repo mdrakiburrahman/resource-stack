@@ -88,7 +88,7 @@ while (true)
 {
     Console.WriteLine("");
     Console.WriteLine(
-        "---------------------------------------------------------- STATUS CHECK -----------------------------------------------------------"
+        $"----------------------------------------------- {DateTime.UtcNow} | STATUS CHECK ------------------------------------------------"
     );
     Console.WriteLine("");
     var jobs = await jobManagementClient.GetJobs(JobConstants.jobPartitionName);

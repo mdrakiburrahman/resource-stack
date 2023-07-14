@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Microsoft.Sovereign.Sample.Common.Constants
+namespace Microsoft.AzureArcData.Sample.Common.Constants
 {
     public class JobConstants
     {

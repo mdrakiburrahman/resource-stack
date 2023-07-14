@@ -1,11 +1,11 @@
 ﻿using Microsoft.WindowsAzure.ResourceStack.Common.BackgroundJobs;
 using System.Configuration;
 
-using Microsoft.Sovereign.Sample.Jobs.Jobs;
-using Microsoft.Sovereign.Sample.Jobs.JobMetadata;
-using Microsoft.Sovereign.Sample.Common.EventSource;
+using Microsoft.AzureArcData.Sample.Jobs.Jobs;
+using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
+using Microsoft.AzureArcData.Sample.Common.EventSource;
 using Newtonsoft.Json;
-using Microsoft.Sovereign.Sample.Common.Constants;
+using Microsoft.AzureArcData.Sample.Common.Constants;
 
 JobManagementClient jobManagementClient = new JobManagementClient(
     documentServiceEndpoint: new Uri(ConfigurationManager.AppSettings["documentServiceEndpoint"] ?? "https://localhost:8081"),

@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.Sovereign.Sample.Jobs.JobMetadata;
+using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
 
-namespace Microsoft.Sovereign.Sample.Jobs.Jobs
+namespace Microsoft.AzureArcData.Sample.Jobs.Jobs
 {
     public class SometimesFailsJob : JobCallback<SometimesFailsJobMetadata>
     {

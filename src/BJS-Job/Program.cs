@@ -1,9 +1,9 @@
 ﻿using Microsoft.WindowsAzure.ResourceStack.Common.BackgroundJobs;
 using System.Configuration;
-using Microsoft.Sovereign.Sample.Common;
+using Microsoft.AzureArcData.Sample.Common;
 using System.Reflection;
-using Microsoft.Sovereign.Sample.Jobs.Jobs;
-using Microsoft.Sovereign.Sample.Common.EventSource;
+using Microsoft.AzureArcData.Sample.Jobs.Jobs;
+using Microsoft.AzureArcData.Sample.Common.EventSource;
 
 JobDispatcherClient jobDispatcherClient = new JobDispatcherClient(
     documentServiceEndpoint: new Uri(ConfigurationManager.AppSettings["documentServiceEndpoint"] ?? "https://localhost:8081"),

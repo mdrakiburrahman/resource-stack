@@ -32,7 +32,7 @@ This example builds two executables.
 
 | Name       | Description                                                                        |
 | ---------- | ---------------------------------------------------------------------------------- |
-| BJS-Admin  | Schedule and query jobs.                                                           |
+| BJS-Admin  | Schedule and query various types of jobs.                                          |
 | BJS-Worker | Runtime environment for jobs, also contains system job to ensure data consistency. |
 
 Another component needed is CosmosDB, for testing the local emulator is sufficient.

@@ -6,11 +6,15 @@ using Microsoft.AzureArcData.Sample.Jobs.Jobs;
 using Microsoft.AzureArcData.Sample.Common.EventSource;
 
 JobDispatcherClient jobDispatcherClient = new JobDispatcherClient(
-    documentServiceEndpoint: new Uri(ConfigurationManager.AppSettings["documentServiceEndpoint"] ?? "https://localhost:8081"),
-    documentAuthorizationKey: ConfigurationManager.AppSettings["documentAuthorizationKey"] ?? "KeyMissing", executionAffinity: "global",
+    documentServiceEndpoint: new Uri(
+        ConfigurationManager.AppSettings["documentServiceEndpoint"] ?? "https://localhost:8081"
+    ),
+    documentAuthorizationKey: ConfigurationManager.AppSettings["documentAuthorizationKey"]
+        ?? "KeyMissing",
+    executionAffinity: "global",
     eventSource: new BJSEventSource(),
     encryptionUtility: null
-    );
+);
 
 jobDispatcherClient.RegisterJobCallback(typeof(AlwaysSucceedJob));
 jobDispatcherClient.RegisterJobCallback(typeof(SometimesFailsJob));

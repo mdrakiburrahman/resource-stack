@@ -20,7 +20,8 @@ namespace Microsoft.AzureArcData.Sample.Jobs.Jobs
             var executionResult = new JobExecutionResult
             {
                 Status = JobExecutionStatus.Succeeded,
-                Message = $"Hello {Metadata?.CallerName}! AlwaysSucceedJob succeeded! JobNumber: {Interlocked.Increment(ref jobRuns)}",
+                Message =
+                    $"Hello {Metadata?.CallerName}! AlwaysSucceedJob succeeded! JobNumber: {Interlocked.Increment(ref jobRuns)}",
             };
 
             return executionResult;

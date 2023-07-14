@@ -30,7 +30,8 @@ namespace Microsoft.AzureArcData.Sample.Jobs.Jobs
                 executionResult = new JobExecutionResult
                 {
                     Status = JobExecutionStatus.Failed,
-                    Message = $"Hello {callerName}, SometimesFailsJob failed! JobNumber: {runNumber}"
+                    Message =
+                        $"Hello {callerName}, SometimesFailsJob failed! JobNumber: {runNumber}"
                 };
             }
             else
@@ -38,9 +39,9 @@ namespace Microsoft.AzureArcData.Sample.Jobs.Jobs
                 executionResult = new JobExecutionResult
                 {
                     Status = JobExecutionStatus.Succeeded,
-                    Message = $"Hello {callerName}, SometimesFailsJob succeeded! JobNumber: {runNumber}"
+                    Message =
+                        $"Hello {callerName}, SometimesFailsJob succeeded! JobNumber: {runNumber}"
                 };
-
             }
             return executionResult;
         }

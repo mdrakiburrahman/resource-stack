@@ -1,5 +1,17 @@
 # Resource Stack - [Background Job Service](https://msazure.visualstudio.com/One/_wiki/wikis/One.wiki/20671/Resource-Stack-(BJS))
 
+<!-- TOC depthfrom:2 -->
+
+- [Resource Stack - Background Job Service](#resource-stack---background-job-service)
+  - [What is BJS?](#what-is-bjs)
+    - [Features](#features)
+  - [Contents of this example](#contents-of-this-example)
+  - [Caveats](#caveats)
+  - [Links](#links)
+  - [Pre-reqs](#pre-reqs)
+  - [How to run this tutorial](#how-to-run-this-tutorial)
+
+<!-- /TOC -->
 ## What is BJS?
 BJS is an internal battle tested framework to schedule and run jobs. Originating from AzureUX-ResourceStack It's used by the PowerApps to run their large amount of background jobs.
 
@@ -47,3 +59,45 @@ flowchart LR
 - [BJS One.wiki](https://msazure.visualstudio.com/One/_wiki/wikis/One.wiki/20671/Resource-Stack-(BJS))
 - [BJS OneBranch](https://msazure.visualstudio.com/DefaultCollection/One/_git/AzureUX-ResourceStack?path=/src/common/jobs&version=GBmaster)
 - [BJS in PowerApps](https://eng.ms/docs/cloud-ai-platform/business-applications-and-platform/bap-dataverse/dv-infrastructure/coreservices-microservices-infrastructure/powerapps-coreservices-wiki/librariesandsdks/backgroundjobservicebjs/bjsincoreframework)
+
+## Pre-reqs
+
+- Visual Studio Community
+- Intall Cosmos DB Emulator on a Windows machine [from here](https://learn.microsoft.com/en-us/azure/cosmos-db/local-emulator?tabs=ssl-netstd21#download-the-emulator)
+
+## How to run this tutorial
+
+1. Run the Cosmos DB Emulator - browsable at `https://localhost:8081/_explorer/index.html`
+   
+   ![Cosmos DB key](_imgs/cosmos-db.png)
+
+2. Put the Primary Key into `App.config` of both `BJS-Admin` and `BJS-Job` - so both can connect:
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <appSettings>
+    <add key="documentServiceEndpoint" value="https://localhost:8081"/>
+    <add key="documentAuthorizationKey" value="C2y6yDj...=="/>
+  </appSettings>
+</configuration>
+```
+
+3. Run both apps in seperate windows:
+
+    ![Run Both](_imgs/run-both.png)
+
+4. `BJS-Admin` spins up `Jobs`, `BJS-Job` executes them:
+
+    ![Both are running](_imgs/both-running.png)
+
+5. Cosmos DB will store execution state:
+
+    ![Job State](_imgs/job-state.png)
+
+    ![Job Trigger](_imgs/job-trigger.png)
+
+6. All Jobs are done:
+
+    ![Work done](_imgs/work-done.png)
+   

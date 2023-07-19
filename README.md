@@ -10,6 +10,12 @@
   - [Links](#links)
   - [Pre-reqs](#pre-reqs)
   - [How to run this tutorial](#how-to-run-this-tutorial)
+  - [Exploring different state-stores](#exploring-different-state-stores)
+    - [1. Azure Storage](#1-azure-storage)
+    - [2. Cosmos DB](#2-cosmos-db)
+    - [3. SQL](#3-sql)
+    - [4. In-Memory](#4-in-memory)
+  - [Exploring Job Scheduling](#exploring-job-scheduling)
 
 <!-- /TOC -->
 ## What is BJS?
@@ -101,3 +107,97 @@ flowchart LR
 
     ![Work done](_imgs/work-done.png)
    
+
+## Exploring different state-stores
+### 1. Azure Storage
+
+`TODO`
+
+---
+
+### 2. Cosmos DB
+
+See above.
+
+---
+
+### 3. SQL
+
+Set this in the `App.config`
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <appSettings>
+    <add key="sqlServerConnectionString" value="Server=localhost;Database=master;Trusted_Connection=True;" />
+  </appSettings>
+</configuration>
+```
+
+And, cleanup logic for tables generated:
+
+```sql
+USE master;
+
+-----------------------
+-- VIEW
+-----------------------
+
+SELECT * FROM dt.arcJobDefinitions;
+SELECT * FROM dq.jobtriggers04;
+
+-----------------------
+-- CLEANUP
+-----------------------
+
+-- Tables -------------
+
+DECLARE @TableName NVARCHAR(255);
+DECLARE @SchemaName NVARCHAR(255);
+DECLARE @DropSQL NVARCHAR(MAX);
+
+DECLARE TableCursor CURSOR FOR
+SELECT TABLE_NAME, TABLE_SCHEMA
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE'
+  AND (TABLE_SCHEMA LIKE 'dq%' OR TABLE_SCHEMA LIKE 'dt%');
+
+OPEN TableCursor;
+
+FETCH NEXT FROM TableCursor INTO @TableName, @SchemaName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @DropSQL = 'DROP TABLE [' + @SchemaName + '].[' + @TableName + '];';
+    EXEC sp_executesql @DropSQL;
+	PRINT 'Table [' + @SchemaName + '].[' + @TableName + '];' + 'dropped successfully.';
+
+    FETCH NEXT FROM TableCursor INTO @TableName, @SchemaName;
+END;
+
+CLOSE TableCursor;
+DEALLOCATE TableCursor;
+
+-- Types -------------
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.types
+    WHERE name = 'arcJobDefinitionsOperationType'
+)
+BEGIN
+    -- Drop the type if it exists
+    DROP TYPE [dt].[arcJobDefinitionsOperationType];
+    PRINT 'Type "arcJobDefinitionsOperationType" dropped successfully.';
+END
+```
+
+
+---
+
+### 4. In-Memory
+
+`TODO`
+
+## Exploring Job Scheduling
+
+`TODO`

@@ -1,23 +1,57 @@
-﻿using Microsoft.WindowsAzure.ResourceStack.Common.BackgroundJobs;
-using System.Configuration;
-
+﻿using System.Configuration;
+using Newtonsoft.Json;
+using Microsoft.WindowsAzure.ResourceStack.Common.Storage;
+using Microsoft.WindowsAzure.ResourceStack.Common.BackgroundJobs;
 using Microsoft.AzureArcData.Sample.Jobs.Jobs;
 using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
 using Microsoft.AzureArcData.Sample.Common.EventSource;
-using Newtonsoft.Json;
 using Microsoft.AzureArcData.Sample.Common.Constants;
-using Microsoft.WindowsAzure.ResourceStack.Common.Storage;
 
-JobManagementClient jobManagementClient = new JobManagementClient(
-    documentServiceEndpoint: new Uri(
-        ConfigurationManager.AppSettings["documentServiceEndpoint"] ?? "https://localhost:8081"
-    ),
-    documentAuthorizationKey: ConfigurationManager.AppSettings["documentAuthorizationKey"]
-        ?? "KeyMissing",
-    executionAffinity: "global",
-    eventSource: new BJSEventSource(),
-    encryptionUtility: null
-);
+// Get backend env-var
+//
+Backend backend;
+if (!Enum.TryParse(Environment.GetEnvironmentVariable(JobConstants.backendEnvVarName), out backend))
+{
+    throw new Exception(
+        $"Please set the {JobConstants.backendEnvVarName} environment variable to one of the following values: {string.Join(", ", Enum.GetNames(typeof(Backend)))}"
+    );
+}
+
+// Initiate backend based on the environment variable
+//
+JobManagementClient jobManagementClient;
+switch (backend)
+{
+    case Backend.cosmosdb:
+
+        jobManagementClient = new JobManagementClient(
+            documentServiceEndpoint: new Uri(
+                ConfigurationManager.AppSettings["documentServiceEndpoint"]
+                    ?? "https://localhost:8081"
+            ),
+            documentAuthorizationKey: ConfigurationManager.AppSettings["documentAuthorizationKey"]
+                ?? "KeyMissing",
+            executionAffinity: "global",
+            eventSource: new BJSEventSource(),
+            encryptionUtility: null
+        );
+
+        break;
+
+    case Backend.sqlserver:
+
+        jobManagementClient = new SqlJobManagementClient(
+            databaseConnectionString: ConfigurationManager.AppSettings["sqlServerConnectionString"],
+            jobDefinitionsTableName: JobConstants.jobTableName,
+            executionAffinity: "global",
+            eventSource: new BJSEventSource(),
+            encryptionUtility: null
+        );
+        break;
+
+    default:
+        throw new Exception($"This demo doesn't have support for {backend} just yet!");
+}
 
 // 1. Job which is always succeeding and is repeated 5 times
 //
@@ -153,9 +187,14 @@ while (true)
                     + $"\tLastExecutionTime: {job.LastExecutionTime} | LastExecutionStatus: {job.LastExecutionStatus} | NextExecutionTime: {job.NextExecutionTime}\n"
                     + $"\tRun: {job.CurrentRepeatCount}/{job.RepeatCount} | Interval: {job.RepeatInterval / 1000}ms"
             );
-            if (job.State == JobState.Completed || job.LastExecutionStatus == JobExecutionStatus.Succeeded)
+            if (
+                job.State == JobState.Completed
+                || job.LastExecutionStatus == JobExecutionStatus.Succeeded
+            )
             {
-                Console.WriteLine($"\nDeleting job {job.JobId}, as it's marked with State {job.State} and Last Execution Status: {job.LastExecutionStatus}");
+                Console.WriteLine(
+                    $"\nDeleting job {job.JobId}, as it's marked with State {job.State} and Last Execution Status: {job.LastExecutionStatus}"
+                );
                 jobManagementClient.DeleteJob(JobConstants.jobPartitionName, job.JobId);
             }
         });

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.PowerPlatform.ResourceStack" Version="6.0.0.1454" />
+    <PackageReference Include="Microsoft.WindowsAzure.ResourceStack.Sql" Version="6.0.0.1454" />
   </ItemGroup>
 
   <ItemGroup>

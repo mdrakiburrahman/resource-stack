@@ -138,6 +138,19 @@ And, cleanup logic for tables generated:
 ```sql
 USE master;
 
+-----------------------
+-- VIEW
+-----------------------
+
+SELECT * FROM dt.arcJobDefinitions;
+SELECT * FROM dq.jobtriggers04;
+
+-----------------------
+-- CLEANUP
+-----------------------
+
+-- Tables -------------
+
 DECLARE @TableName NVARCHAR(255);
 DECLARE @SchemaName NVARCHAR(255);
 DECLARE @DropSQL NVARCHAR(MAX);
@@ -156,12 +169,26 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
     SET @DropSQL = 'DROP TABLE [' + @SchemaName + '].[' + @TableName + '];';
     EXEC sp_executesql @DropSQL;
+	PRINT 'Table [' + @SchemaName + '].[' + @TableName + '];' + 'dropped successfully.';
 
     FETCH NEXT FROM TableCursor INTO @TableName, @SchemaName;
 END;
 
 CLOSE TableCursor;
 DEALLOCATE TableCursor;
+
+-- Types -------------
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.types
+    WHERE name = 'arcJobDefinitionsOperationType'
+)
+BEGIN
+    -- Drop the type if it exists
+    DROP TYPE [dt].[arcJobDefinitionsOperationType];
+    PRINT 'Type "arcJobDefinitionsOperationType" dropped successfully.';
+END
 ```
 
 

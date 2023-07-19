@@ -19,7 +19,7 @@
 
 <!-- /TOC -->
 ## What is BJS?
-BJS is an internal battle tested framework to schedule and run jobs. Originating from AzureUX-ResourceStack It's used by the PowerApps to run their large amount of background jobs.
+BJS is a battle tested framework to schedule and run jobs. Originating from AzureUX-ResourceStack It's used by the PowerApps to run their large amount of background jobs.
 
 ### Features
 

@@ -10,6 +10,11 @@
   - [Links](#links)
   - [Pre-reqs](#pre-reqs)
   - [How to run this tutorial](#how-to-run-this-tutorial)
+  - [Exploring different state-stores](#exploring-different-state-stores)
+    - [1. Azure Storage](#1-azure-storage)
+    - [2. Cosmos DB](#2-cosmos-db)
+    - [3. SQL](#3-sql)
+    - [4. In-Memory](#4-in-memory)
 
 <!-- /TOC -->
 ## What is BJS?
@@ -101,3 +106,18 @@ flowchart LR
 
     ![Work done](_imgs/work-done.png)
    
+
+## Exploring different state-stores
+### 1. Azure Storage
+
+---
+
+### 2. Cosmos DB
+
+---
+
+### 3. SQL
+
+---
+
+### 4. In-Memory

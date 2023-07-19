@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BJSWorker": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "JOB_BACKEND": "sqlserver"
+      }
+    }
+  }
+}

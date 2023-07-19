@@ -42,6 +42,7 @@ switch (backend)
 
         jobManagementClient = new SqlJobManagementClient(
             databaseConnectionString: ConfigurationManager.AppSettings["sqlServerConnectionString"],
+            jobDefinitionsTableName: JobConstants.jobTableName,
             executionAffinity: "global",
             eventSource: new BJSEventSource(),
             encryptionUtility: null

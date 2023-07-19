@@ -41,6 +41,7 @@ switch (backend)
 
         jobDispatcherClient = new SqlJobDispatcherClient(
             databaseConnectionString: ConfigurationManager.AppSettings["sqlServerConnectionString"],
+            jobDefinitionsTableName: JobConstants.jobTableName,
             executionAffinity: "global",
             eventSource: new BJSEventSource(),
             encryptionUtility: null

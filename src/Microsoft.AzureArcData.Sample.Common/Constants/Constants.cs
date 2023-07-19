@@ -10,5 +10,6 @@ namespace Microsoft.AzureArcData.Sample.Common.Constants
     {
         public const string jobPartitionName = "jobs";
         public const string backendEnvVarName = "JOB_BACKEND";
+        public const string jobTableName = "arcJobDefinitions";
     }
 }

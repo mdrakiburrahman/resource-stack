@@ -15,7 +15,6 @@
     - [2. Cosmos DB](#2-cosmos-db)
     - [3. SQL](#3-sql)
     - [4. In-Memory](#4-in-memory)
-  - [Exploring Job Scheduling](#exploring-job-scheduling)
 
 <!-- /TOC -->
 ## What is BJS?
@@ -195,9 +194,5 @@ END
 ---
 
 ### 4. In-Memory
-
-`TODO`
-
-## Exploring Job Scheduling
 
 `TODO`

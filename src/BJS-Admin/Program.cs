@@ -53,9 +53,11 @@ switch (backend)
         throw new Exception($"This demo doesn't have support for {backend} just yet!");
 }
 
+JobBuilder newJob;
+
 // 1. Job which is always succeeding and is repeated 5 times
 //
-var newJob = JobBuilder
+newJob = JobBuilder
     .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
     .WithCallback(typeof(AlwaysSucceedJob))
     .WithMetadata(
@@ -81,16 +83,34 @@ newJob = JobBuilder
 
 await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 
-// 3. Job which is always succeeding, is never repeated and never retried
+// 3. Job which is always succeeding, is repeated every day
 //
+var currentTime = DateTime.UtcNow;
+var currentMinute = currentTime.Minute;
+var currentHour = currentTime.Hour;
+
+JobRecurrenceSchedule schedule = new JobRecurrenceSchedule()
+{
+                                                                                    // Trigger on:
+    Minutes = new int[] { currentMinute + 1 },                                      // +1 minute from the current minute
+    Hours = new int[] { currentHour },                                              // On the current hour
+    WeekDays = new DayOfWeek[] { DayOfWeek.Wednesday, DayOfWeek.Thursday }          // If it is Wednesday and Thursday
+};
+
 newJob = JobBuilder
     .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
     .WithCallback(typeof(AlwaysSucceedJob))
     .WithMetadata(
         JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
     )
-    .WithoutRepeatStrategy()
-    .WithoutRetryStrategy();
+    .WithRepeatStrategy(
+        count: int.MaxValue,                                                        // Repeat forever
+        interval: 1,                                                                // Repeat every 1....
+        unit: JobRecurrenceUnit.Day,                                                // ... day
+        schedule: schedule                                                          // against the schedule defined above
+    )
+    .WithoutRetryStrategy()
+    .WithTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));    // On EST
 
 await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 
@@ -204,5 +224,5 @@ while (true)
         "----------------------------------------------------------------------------------------------------------------------------------------"
     );
     Console.WriteLine("");
-    Task.Delay(TimeSpan.FromSeconds(5)).Wait();
+    Task.Delay(TimeSpan.FromSeconds(1)).Wait();
 }

@@ -91,10 +91,10 @@ var currentHour = currentTime.Hour;
 
 JobRecurrenceSchedule schedule = new JobRecurrenceSchedule()
 {
-                                                                                    // Trigger on:
-    Minutes = new int[] { currentMinute + 1 },                                      // +1 minute from the current minute
-    Hours = new int[] { currentHour },                                              // On the current hour
-    WeekDays = new DayOfWeek[] { DayOfWeek.Wednesday, DayOfWeek.Thursday }          // If it is Wednesday and Thursday
+    // Trigger on:
+    Minutes = new int[] { currentMinute + 1 }, // +1 minute from the current minute
+    Hours = new int[] { currentHour }, // On the current hour
+    WeekDays = new DayOfWeek[] { DayOfWeek.Wednesday, DayOfWeek.Thursday } // If it is Wednesday and Thursday
 };
 
 newJob = JobBuilder
@@ -104,13 +104,13 @@ newJob = JobBuilder
         JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
     )
     .WithRepeatStrategy(
-        count: int.MaxValue,                                                        // Repeat forever
-        interval: 1,                                                                // Repeat every 1....
-        unit: JobRecurrenceUnit.Day,                                                // ... day
-        schedule: schedule                                                          // against the schedule defined above
+        count: int.MaxValue, // Repeat forever
+        interval: 1, // Repeat every 1....
+        unit: JobRecurrenceUnit.Day, // ... day
+        schedule: schedule // against the schedule defined above
     )
     .WithoutRetryStrategy()
-    .WithTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));    // On EST
+    .WithTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")); // On EST
 
 await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 
@@ -137,7 +137,7 @@ for (int i = 0; i < 3; i++)
     await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 }
 
-// 5. Sequencer Job:
+// 5. Distributed Sequencer Job:
 //
 //                              +---------------------+
 //                              | SometimesFailsJob   |
@@ -152,7 +152,12 @@ for (int i = 0; i < 3; i++)
 //                              +-----------------------+
 //
 //
-var sequencerBuilder = SequencerBuilder
+// Distributed Sequencers run SometimesFailsJob and CheckpointJob in parallel.
+//
+// Distributed Sequencers CANNOT be declared using the same SequencerId as they
+// fan out and spin up child jobs, which are hard to cancel.
+//
+var distributedSequencerBuilder = SequencerBuilder
     .Create(
         JobConstants.GetJobPartition(),
         StorageUtility.EscapeStorageKey(Guid.NewGuid().ToString())
@@ -186,8 +191,61 @@ var sequencerBuilder = SequencerBuilder
     .WithFlags(SequencerFlags.DeleteSequencerIfCompleted);
 
 await jobManagementClient
-    .CreateSequencer(SequencerType.Distributed, sequencerBuilder)
+    .CreateSequencer(SequencerType.Distributed, distributedSequencerBuilder)
     .ConfigureAwait(false);
+
+// 6. Linear Sequencer Job:
+//
+//      Exact same as Distributed (including the dependency declaration),
+//      except, in linear, only a single action is executed at a time - which
+//      allows us to overwrite and cancel - even when it is running.
+//
+//      I.e. SometimesFailsJob and CheckpointJob runs in Sequencer, respecting
+//      their dependency with AlwaysSucceedJob.
+//
+var linearSequencerBuilder = SequencerBuilder
+    .Create(
+        JobConstants.GetJobPartition(),
+        //
+        // Hard-code GUID on purpose, to show we can overwrite
+        //
+        StorageUtility.EscapeStorageKey("a5082b19-8a6e-4bc5-8fdd-8ef39dfebc39")
+    )
+    .WithAction(
+        "AlwaysSucceedJob",
+        typeof(AlwaysSucceedJob).FullName,
+        JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
+    )
+    .WithAction(
+        "SometimesFailsJob",
+        typeof(SometimesFailsJob).FullName,
+        JsonConvert.SerializeObject(
+            new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 0 }
+        )
+    )
+    .WithAction(
+        "CheckpointingJob",
+        typeof(CheckpointingJob).FullName,
+        JsonConvert.SerializeObject(
+            new CheckpointingJobMetadata
+            {
+                CallerName = "AzureArcData",
+                CurrentStep = 0,
+                MaxSteps = -1
+            }
+        )
+    )
+    .WithDependency("AlwaysSucceedJob", "SometimesFailsJob")
+    .WithDependency("AlwaysSucceedJob", "CheckpointingJob");
+
+// Loop to prove that we can overwrite over and over again
+//
+for (int i = 0; i < 5; i++)
+{
+    await jobManagementClient
+        .CreateSequencer(SequencerType.Linear, linearSequencerBuilder)
+        .ConfigureAwait(false);
+}
 
 // Print state
 //

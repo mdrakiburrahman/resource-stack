@@ -58,7 +58,7 @@ JobBuilder newJob;
 // 1. Job which is always succeeding and is repeated 5 times
 //
 newJob = JobBuilder
-    .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
+    .Create(JobConstants.GetJobPartition(), Guid.NewGuid().ToString())
     .WithCallback(typeof(AlwaysSucceedJob))
     .WithMetadata(
         JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
@@ -71,7 +71,7 @@ await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 // 2. Job which is sometimes failing is repeated 5 times and retries failed runs for 3 times
 //
 newJob = JobBuilder
-    .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
+    .Create(JobConstants.GetJobPartition(), Guid.NewGuid().ToString())
     .WithCallback(typeof(SometimesFailsJob))
     .WithMetadata(
         JsonConvert.SerializeObject(
@@ -98,7 +98,7 @@ JobRecurrenceSchedule schedule = new JobRecurrenceSchedule()
 };
 
 newJob = JobBuilder
-    .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
+    .Create(JobConstants.GetJobPartition(), Guid.NewGuid().ToString())
     .WithCallback(typeof(AlwaysSucceedJob))
     .WithMetadata(
         JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
@@ -119,7 +119,7 @@ for (int i = 0; i < 3; i++)
     // 4. Job which is using checkpointing
     //
     newJob = JobBuilder
-        .Create(JobConstants.jobPartitionName, Guid.NewGuid().ToString())
+        .Create(JobConstants.GetJobPartition(), Guid.NewGuid().ToString())
         .WithCallback(typeof(CheckpointingJob))
         .WithMetadata(
             JsonConvert.SerializeObject(
@@ -154,7 +154,7 @@ for (int i = 0; i < 3; i++)
 //
 var sequencerBuilder = SequencerBuilder
     .Create(
-        JobConstants.jobPartitionName,
+        JobConstants.GetJobPartition(),
         StorageUtility.EscapeStorageKey(Guid.NewGuid().ToString())
     )
     .WithAction(
@@ -198,7 +198,7 @@ while (true)
         $"----------------------------------------------- {DateTime.UtcNow} | STATUS CHECK ------------------------------------------------"
     );
     Console.WriteLine("");
-    var jobs = await jobManagementClient.GetJobs(JobConstants.jobPartitionName);
+    var jobs = await jobManagementClient.GetJobs(JobConstants.GetJobPartition());
     jobs.ToList()
         .ForEach(job =>
         {
@@ -215,7 +215,7 @@ while (true)
                 Console.WriteLine(
                     $"\nDeleting job {job.JobId}, as it's marked with State {job.State} and Last Execution Status: {job.LastExecutionStatus}"
                 );
-                jobManagementClient.DeleteJob(JobConstants.jobPartitionName, job.JobId);
+                jobManagementClient.DeleteJob(JobConstants.GetJobPartition(), job.JobId);
             }
         });
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.WindowsAzure.ResourceStack.Common.Storage;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,13 @@ namespace Microsoft.AzureArcData.Sample.Common.Constants
 {
     public class JobConstants
     {
-        public const string jobPartitionName = "MSSQLSERVER";
+        public const string sqlInstanceName = "MY_OLD_SQL2019"; // MSSQLSERVER, MY_OLD_SQL2019
+
+        public static string GetJobPartition()
+        {
+            return StorageUtility.EscapeStorageKey($"{sqlInstanceName}".ToUpperInvariant());
+        }
+
         public const string backendEnvVarName = "JOB_BACKEND";
         public const string jobTableName = "arcJobDefinitions";
     }

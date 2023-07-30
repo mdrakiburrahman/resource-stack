@@ -214,14 +214,41 @@ var linearSequencerBuilder = SequencerBuilder
     .WithAction(
         "AlwaysSucceedJob",
         typeof(AlwaysSucceedJob).FullName,
-        JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
+        JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" }),
+        //
+        // Configure Action Level settings
+        //
+        action =>
+        {
+            action.WithRetryStrategy(
+                count: 1,
+                interval: TimeSpan.FromSeconds(5),
+                mode: JobRecurrenceMode.Linear,
+                minInterval: TimeSpan.FromSeconds(3),
+                maxInterval: TimeSpan.FromMinutes(1)
+            );
+            action.WithTimeout(TimeSpan.FromSeconds(10));
+        }
     )
     .WithAction(
         "SometimesFailsJob",
         typeof(SometimesFailsJob).FullName,
         JsonConvert.SerializeObject(
-            new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 0 }
-        )
+            //
+            // Fail on purpose
+            //
+            new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 1 }
+        ),
+        action =>
+        {
+            action.WithRetryStrategy(
+                count: 3,
+                interval: TimeSpan.FromSeconds(2),
+                mode: JobRecurrenceMode.Linear,
+                minInterval: TimeSpan.FromSeconds(1),
+                maxInterval: TimeSpan.FromSeconds(10)
+            );
+        }
     )
     .WithAction(
         "CheckpointingJob",
@@ -236,7 +263,13 @@ var linearSequencerBuilder = SequencerBuilder
         )
     )
     .WithDependency("AlwaysSucceedJob", "SometimesFailsJob")
-    .WithDependency("AlwaysSucceedJob", "CheckpointingJob");
+    .WithDependency("AlwaysSucceedJob", "CheckpointingJob")
+    //
+    // Configure Sequencer level settings
+    //
+    .WithStartTime(DateTime.UtcNow.AddSeconds(1))
+    .WithTimeout(TimeSpan.FromMinutes(5))
+    .WithRetention(TimeSpan.FromMinutes(60));
 
 // Loop to prove that we can overwrite over and over again
 //
@@ -256,18 +289,62 @@ while (true)
         $"----------------------------------------------- {DateTime.UtcNow} | STATUS CHECK ------------------------------------------------"
     );
     Console.WriteLine("");
+
     var jobs = await jobManagementClient.GetJobs(JobConstants.GetJobPartition());
     jobs.ToList()
         .ForEach(job =>
         {
+            bool delete = true;
+
+            // Background Job or Sequencer - could be either
+            //
             Console.WriteLine(
                 $"JobID: {job.JobId} | CallBack: {job.Callback} | MetaData: {job.Metadata} | Status: {job.State}\n"
                     + $"\tLastExecutionTime: {job.LastExecutionTime} | LastExecutionStatus: {job.LastExecutionStatus} | NextExecutionTime: {job.NextExecutionTime}\n"
                     + $"\tRun: {job.CurrentRepeatCount}/{job.RepeatCount} | Interval: {job.RepeatInterval / 1000}ms"
             );
+
+            // Check if Sequencer
+            //
+            Task<SequencerAction[]> sequencerActionTasks;
+            if (job.SequencerType != SequencerType.NotSpecified)
+            {
+                sequencerActionTasks = jobManagementClient.GetSequencerActions(
+                    sequencerType: job.SequencerType,
+                    sequencerPartition: JobConstants.GetJobPartition(),
+                    sequencerId: job.JobId
+                );
+
+                // Retrieve all Sequencer Actions synchronously
+                //
+                SequencerAction[]? sequencerActions = sequencerActionTasks.Result;
+
+                // Print Sequencer Action State
+                //
+                foreach (var action in sequencerActions)
+                {
+                    Console.WriteLine("");
+                    Console.WriteLine($"ActionId: {action.ActionId}");
+                    Console.WriteLine($"Result: {action.Result}");
+                    Console.WriteLine($"State: {action.State}");
+                    Console.WriteLine("");
+
+                    if (
+                        action.Result == SequencerActionResult.Failed
+                        || action.Result == SequencerActionResult.TimedOut
+                        || action.Result == SequencerActionResult.Skipped
+                    )
+                    {
+                        delete = false;
+                    }
+                }
+            }
+
             if (
-                job.State == JobState.Completed
-                || job.LastExecutionStatus == JobExecutionStatus.Succeeded
+                (
+                    job.State == JobState.Completed
+                    || job.LastExecutionStatus == JobExecutionStatus.Succeeded
+                ) && delete
             )
             {
                 Console.WriteLine(

@@ -7,6 +7,13 @@ using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
 using Microsoft.AzureArcData.Sample.Common.EventSource;
 using Microsoft.AzureArcData.Sample.Common.Constants;
 
+// Sequencer GUIDs
+//
+string distributedSequencerDynamicId = StorageUtility.EscapeStorageKey(Guid.NewGuid().ToString());
+string linearSequencerStaticId = StorageUtility.EscapeStorageKey(
+    "a5082b19-8a6e-4bc5-8fdd-8ef39dfebc39"
+);
+
 // Get backend env-var
 //
 Backend backend;
@@ -63,8 +70,12 @@ newJob = JobBuilder
     .WithMetadata(
         JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
     )
-    .WithRepeatStrategy(5, TimeSpan.FromSeconds(10))
-    .WithoutRetryStrategy();
+    //
+    // Times out Job
+    //
+    .WithTimeout(TimeSpan.FromSeconds(5))
+    .WithRepeatStrategy(5, TimeSpan.FromSeconds(5))
+    .WithRetryStrategy(3, TimeSpan.FromSeconds(5));
 
 await jobManagementClient.CreateOrUpdateJob(newJob).ConfigureAwait(false);
 
@@ -158,21 +169,56 @@ for (int i = 0; i < 3; i++)
 // fan out and spin up child jobs, which are hard to cancel.
 //
 var distributedSequencerBuilder = SequencerBuilder
-    .Create(
-        JobConstants.GetJobPartition(),
-        StorageUtility.EscapeStorageKey(Guid.NewGuid().ToString())
-    )
+    .Create(JobConstants.GetJobPartition(), distributedSequencerDynamicId)
+    //
+    // Sequencer E2E timeout
+    //
+    .WithTimeout(TimeSpan.FromMinutes(10))
     .WithAction(
         "AlwaysSucceedJob",
         typeof(AlwaysSucceedJob).FullName,
-        JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" })
+        JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" }),
+        //
+        // Configure Action Level settings
+        //
+        action =>
+        {
+            //
+            // Same story as Linear below, basically, in a Sequencer, the
+            // highest withAction's timeout is the one that wins. In this case,
+            // AlwaysSucceedJob gets a timeout of 999 seconds.
+            //
+            action.WithTimeout(TimeSpan.FromSeconds(307));
+        }
     )
     .WithAction(
         "SometimesFailsJob",
         typeof(SometimesFailsJob).FullName,
         JsonConvert.SerializeObject(
-            new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 0 }
-        )
+            //
+            // Fail on purpose, on the Nth retry - stops execution of the whole Sequencer
+            //
+            new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 1 }
+        ),
+        action =>
+        {
+            //
+            // This works on the Distributed Sequencer, we retry 2 more times (3,
+            // including the original attempt)
+            //
+            action.WithRetryStrategy(
+                count: 2,
+                interval: TimeSpan.FromSeconds(1), // Starting interval
+                mode: JobRecurrenceMode.Linear, // Linear backoff
+                minInterval: TimeSpan.FromSeconds(1), // Lower ceiling
+                maxInterval: TimeSpan.FromSeconds(5) // Upper ceiling
+            );
+            //
+            // All Actions (Jobs) gets this timeout, which is the highest
+            // timeout.
+            //
+            action.WithTimeout(TimeSpan.FromSeconds(999));
+        }
     )
     .WithAction(
         "CheckpointingJob",
@@ -188,7 +234,7 @@ var distributedSequencerBuilder = SequencerBuilder
     )
     .WithDependency("AlwaysSucceedJob", "SometimesFailsJob")
     .WithDependency("AlwaysSucceedJob", "CheckpointingJob")
-    .WithFlags(SequencerFlags.DeleteSequencerIfCompleted);
+    .WithRetention(TimeSpan.FromSeconds(999));
 
 await jobManagementClient
     .CreateSequencer(SequencerType.Distributed, distributedSequencerBuilder)
@@ -209,7 +255,7 @@ var linearSequencerBuilder = SequencerBuilder
         //
         // Hard-code GUID on purpose, to show we can overwrite
         //
-        StorageUtility.EscapeStorageKey("a5082b19-8a6e-4bc5-8fdd-8ef39dfebc39")
+        linearSequencerStaticId
     )
     .WithAction(
         "AlwaysSucceedJob",
@@ -220,14 +266,13 @@ var linearSequencerBuilder = SequencerBuilder
         //
         action =>
         {
-            action.WithRetryStrategy(
-                count: 1,
-                interval: TimeSpan.FromSeconds(5),
-                mode: JobRecurrenceMode.Linear,
-                minInterval: TimeSpan.FromSeconds(3),
-                maxInterval: TimeSpan.FromMinutes(1)
-            );
-            action.WithTimeout(TimeSpan.FromSeconds(10));
+            //
+            // Overrides default timeout to 00:4:25 seconds, the single Linear
+            // Job takes on this timeout value. But...this won't be the source
+            // of truth, because the next Action has a higher timeout, so that
+            // one is used!
+            //
+            action.WithTimeout(TimeSpan.FromSeconds(265));
         }
     )
     .WithAction(
@@ -235,19 +280,28 @@ var linearSequencerBuilder = SequencerBuilder
         typeof(SometimesFailsJob).FullName,
         JsonConvert.SerializeObject(
             //
-            // Fail on purpose
+            // Fail on purpose, on the Nth retry - stops execution of the whole Sequencer
             //
             new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 1 }
         ),
         action =>
         {
+            //
+            // This works on the Linear Sequencer, we retry 3 more times (4,
+            // including the original attempt)
+            //
             action.WithRetryStrategy(
                 count: 3,
-                interval: TimeSpan.FromSeconds(2),
-                mode: JobRecurrenceMode.Linear,
-                minInterval: TimeSpan.FromSeconds(1),
-                maxInterval: TimeSpan.FromSeconds(10)
+                interval: TimeSpan.FromSeconds(2), // Starting interval
+                mode: JobRecurrenceMode.Linear, // Linear backoff
+                minInterval: TimeSpan.FromSeconds(1), // Lower ceiling
+                maxInterval: TimeSpan.FromSeconds(10) // Upper ceiling
             );
+            //
+            // This is the source of truth for the timeout of the whole
+            // Sequencer, including the AlwaysSucceedJob Action.
+            //
+            action.WithTimeout(TimeSpan.FromSeconds(361));
         }
     )
     .WithAction(
@@ -265,11 +319,17 @@ var linearSequencerBuilder = SequencerBuilder
     .WithDependency("AlwaysSucceedJob", "SometimesFailsJob")
     .WithDependency("AlwaysSucceedJob", "CheckpointingJob")
     //
-    // Configure Sequencer level settings
+    // Start right now
     //
-    .WithStartTime(DateTime.UtcNow.AddSeconds(1))
-    .WithTimeout(TimeSpan.FromMinutes(5))
-    .WithRetention(TimeSpan.FromMinutes(60));
+    .WithStartTime(DateTime.UtcNow.AddSeconds(0))
+    //
+    // Sequencer E2E timeout
+    //
+    .WithTimeout(TimeSpan.FromMinutes(15))
+    //
+    // Retention period
+    //
+    .WithRetention(TimeSpan.FromMinutes(69));
 
 // Loop to prove that we can overwrite over and over again
 //
@@ -299,9 +359,9 @@ while (true)
             // Background Job or Sequencer - could be either
             //
             Console.WriteLine(
-                $"JobID: {job.JobId} | CallBack: {job.Callback} | MetaData: {job.Metadata} | Status: {job.State}\n"
+                $"JobID: {job.JobId} | CallBack: {job.Callback} | Status: {job.State}\n"
                     + $"\tLastExecutionTime: {job.LastExecutionTime} | LastExecutionStatus: {job.LastExecutionStatus} | NextExecutionTime: {job.NextExecutionTime}\n"
-                    + $"\tRun: {job.CurrentRepeatCount}/{job.RepeatCount} | Interval: {job.RepeatInterval / 1000}ms"
+                    + $"\tRun: {job.CurrentRepeatCount}/{job.RepeatCount} | Interval: {job.RepeatInterval / 1000}ms | Timeout: {job.Timeout} | Retention: {job.Retention}"
             );
 
             // Check if Sequencer
@@ -309,11 +369,26 @@ while (true)
             Task<SequencerAction[]> sequencerActionTasks;
             if (job.SequencerType != SequencerType.NotSpecified)
             {
-                sequencerActionTasks = jobManagementClient.GetSequencerActions(
-                    sequencerType: job.SequencerType,
-                    sequencerPartition: JobConstants.GetJobPartition(),
-                    sequencerId: job.JobId
-                );
+                // Don't delete Sequencer status
+                //
+                delete = false;
+
+                if (job.SequencerType == SequencerType.Linear)
+                {
+                    sequencerActionTasks = jobManagementClient.GetSequencerActions(
+                        sequencerType: job.SequencerType,
+                        sequencerPartition: JobConstants.GetJobPartition(),
+                        sequencerId: linearSequencerStaticId
+                    );
+                }
+                else
+                {
+                    sequencerActionTasks = jobManagementClient.GetSequencerActions(
+                        sequencerType: job.SequencerType,
+                        sequencerPartition: JobConstants.GetJobPartition(),
+                        sequencerId: distributedSequencerDynamicId
+                    );
+                }
 
                 // Retrieve all Sequencer Actions synchronously
                 //
@@ -335,7 +410,10 @@ while (true)
                         || action.Result == SequencerActionResult.Skipped
                     )
                     {
-                        delete = false;
+                        Console.BackgroundColor = ConsoleColor.Red;
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine($"ActionId: {action.ActionId} failed");
+                        Console.ResetColor();
                     }
                 }
             }

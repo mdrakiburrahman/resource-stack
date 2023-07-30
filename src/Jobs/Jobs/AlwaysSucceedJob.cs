@@ -15,7 +15,7 @@ namespace Microsoft.AzureArcData.Sample.Jobs.Jobs
         protected override async Task<JobExecutionResult> OnExecute()
         {
             // Simulate some work
-            await Task.Delay(Random.Shared.Next(200, 2000));
+            await Task.Delay(1000);
 
             var executionResult = new JobExecutionResult
             {

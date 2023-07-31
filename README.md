@@ -141,8 +141,27 @@ USE master;
 -- VIEW
 -----------------------
 
-SELECT * FROM dt.arcJobDefinitions;
-SELECT * FROM dq.jobtriggers04;
+-- Only run SELECT if table exists.
+IF EXISTS (
+    SELECT *
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = 'dt' 
+    AND TABLE_NAME = 'arcJobDefinitions'
+)
+BEGIN
+	-- SELECT specific columns
+    SELECT RowKey
+		,TIMESTAMP
+		,JobPartition
+		,JobId
+		,Callback
+		,CurrentLocation
+		,STATE
+		,ExecutionState
+		,StartTime
+		,RetryCount
+	FROM dt.arcJobDefinitions;
+END
 
 -----------------------
 -- CLEANUP
@@ -158,7 +177,8 @@ DECLARE TableCursor CURSOR FOR
 SELECT TABLE_NAME, TABLE_SCHEMA
 FROM INFORMATION_SCHEMA.TABLES
 WHERE TABLE_TYPE = 'BASE TABLE'
-  AND (TABLE_SCHEMA = 'dq' OR TABLE_SCHEMA = 'dt');
+  AND (TABLE_SCHEMA = 'dq' OR TABLE_SCHEMA = 'dt')
+  ORDER BY TABLE_NAME ASC;
 
 OPEN TableCursor;
 

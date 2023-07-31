@@ -6,6 +6,8 @@ using Microsoft.AzureArcData.Sample.Jobs.Jobs;
 using Microsoft.AzureArcData.Sample.Jobs.JobMetadata;
 using Microsoft.AzureArcData.Sample.Common.EventSource;
 using Microsoft.AzureArcData.Sample.Common.Constants;
+using Microsoft.AzureArcData.Sample.Common.Settings;
+using Microsoft.WindowsAzure.ResourceStack.Common.BackgroundJobs.Configuration;
 
 // Sequencer GUIDs
 //
@@ -13,6 +15,19 @@ string distributedSequencerDynamicId = StorageUtility.EscapeStorageKey(Guid.NewG
 string linearSequencerStaticId = StorageUtility.EscapeStorageKey(
     "a5082b19-8a6e-4bc5-8fdd-8ef39dfebc39"
 );
+
+// Initiate the custom job options
+//
+JobOptions jobOptions = new JobOptions
+{
+    DefaultSettings = new JobSettings
+    {
+        JobTimeout = TimeSpan.Parse("00:07:31"),
+        SequencerTimeout = TimeSpan.Parse("00:37:59"),
+        Retention = TimeSpan.Parse("01:19:19")
+    }
+};
+CustomJobsConfiguration customJobsConfiguration = new(jobOptions);
 
 // Get backend env-var
 //
@@ -40,7 +55,8 @@ switch (backend)
                 ?? "KeyMissing",
             executionAffinity: "global",
             eventSource: new BJSEventSource(),
-            encryptionUtility: null
+            encryptionUtility: null,
+            jobsConfigurationProvider: customJobsConfiguration
         );
 
         break;
@@ -50,9 +66,11 @@ switch (backend)
         jobManagementClient = new SqlJobManagementClient(
             databaseConnectionString: ConfigurationManager.AppSettings["sqlServerConnectionString"],
             jobDefinitionsTableName: JobConstants.jobTableName,
+            queueNamePrefix: JobConstants.queueTablePrefix,
             executionAffinity: "global",
             eventSource: new BJSEventSource(),
-            encryptionUtility: null
+            encryptionUtility: null,
+            jobsConfigurationProvider: customJobsConfiguration
         );
         break;
 

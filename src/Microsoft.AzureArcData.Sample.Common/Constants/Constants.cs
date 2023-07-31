@@ -18,6 +18,7 @@ namespace Microsoft.AzureArcData.Sample.Common.Constants
 
         public const string backendEnvVarName = "JOB_BACKEND";
         public const string jobTableName = "arcJobDefinitions";
+        public const string queueTablePrefix = "arcJobTriggers";
         public const string DefaultJobTimeoutKey = "Microsoft.WindowsAzure.ResourceStack.BackgroundJobs.DefaultJobTimeout";
         public const int DefaultJobTimeoutValueInSeconds = 5;
     }

@@ -160,7 +160,9 @@ BEGIN
 		,ExecutionState
 		,StartTime
 		,RetryCount
-	FROM dt.arcJobDefinitions;
+		,Timeout
+	FROM dt.arcJobDefinitions
+	WHERE JobPartition = 'MY:5FOLD:5FSQL2019';
 END
 
 -----------------------
@@ -208,6 +210,12 @@ BEGIN
     DROP TYPE [dt].[arcJobDefinitionsOperationType];
     PRINT 'Type "arcJobDefinitionsOperationType" dropped successfully.';
 END
+
+-----------------------
+-- VERIFY
+-----------------------
+SELECT * FROM master.sys.objects
+WHERE is_ms_shipped=0
 ```
 
 

@@ -73,6 +73,8 @@ switch (backend)
 jobDispatcherClient.RegisterJobCallback(typeof(AlwaysSucceedJob));
 jobDispatcherClient.RegisterJobCallback(typeof(SometimesFailsJob));
 jobDispatcherClient.RegisterJobCallback(typeof(CheckpointingJob));
+jobDispatcherClient.RegisterJobCallback(typeof(MetadataHandoffStartingJob));
+jobDispatcherClient.RegisterJobCallback(typeof(MetadataHandoffEndingJob));
 jobDispatcherClient.ProvisionSystemConsistencyJob().Wait();
 
 Console.WriteLine("Starting Job Dispatcher");

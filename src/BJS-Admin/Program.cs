@@ -80,6 +80,7 @@ switch (backend)
 
 JobBuilder newJob;
 
+
 // 1. Job which is always succeeding and is repeated 5 times
 //
 newJob = JobBuilder
@@ -357,6 +358,43 @@ for (int i = 0; i < 5; i++)
         .CreateSequencer(SequencerType.Linear, linearSequencerBuilder)
         .ConfigureAwait(false);
 }
+
+// 7. Sequencer Job - where one Action can retrieve another Action's Metadata at runtime:
+//
+var defaultMetadataForBothJobs = new SharedJobMetadata { SecretString = string.Empty, SecretValue = 0 };
+
+var chainedSequencerBuilder = SequencerBuilder
+    .Create(
+        JobConstants.GetJobPartition(),
+        StorageUtility.EscapeStorageKey(Guid.NewGuid().ToString())
+    )
+    .WithAction(
+        "MetadataHandoffStartingJob",
+        typeof(MetadataHandoffStartingJob).FullName,
+        JsonConvert.SerializeObject(defaultMetadataForBothJobs)
+    )
+    .WithAction(
+        "MetadataHandoffEndingJob",
+        typeof(MetadataHandoffEndingJob).FullName,
+        JsonConvert.SerializeObject(defaultMetadataForBothJobs)
+    )
+    .WithDependency("MetadataHandoffStartingJob", "MetadataHandoffEndingJob")
+    //
+    // Start right now
+    //
+    .WithStartTime(DateTime.UtcNow.AddSeconds(0))
+    //
+    // Sequencer E2E timeout
+    //
+    .WithTimeout(TimeSpan.FromMinutes(15))
+    //
+    // Retention period
+    //
+    .WithRetention(TimeSpan.FromMinutes(100));
+
+await jobManagementClient
+    .CreateSequencer(SequencerType.Distributed, chainedSequencerBuilder)
+    .ConfigureAwait(false);
 
 // Print state
 //

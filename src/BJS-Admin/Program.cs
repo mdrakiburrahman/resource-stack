@@ -80,7 +80,6 @@ switch (backend)
 
 JobBuilder newJob;
 
-
 // 1. Job which is always succeeding and is repeated 5 times
 //
 newJob = JobBuilder
@@ -361,7 +360,11 @@ for (int i = 0; i < 5; i++)
 
 // 7. Sequencer Job - where one Action can retrieve another Action's Metadata at runtime:
 //
-var defaultMetadataForBothJobs = new SharedJobMetadata { SecretString = string.Empty, SecretValue = 0 };
+var defaultMetadataForBothJobs = new SharedJobMetadata
+{
+    SecretString = string.Empty,
+    SecretValue = 0
+};
 
 var chainedSequencerBuilder = SequencerBuilder
     .Create(
@@ -394,6 +397,96 @@ var chainedSequencerBuilder = SequencerBuilder
 
 await jobManagementClient
     .CreateSequencer(SequencerType.Distributed, chainedSequencerBuilder)
+    .ConfigureAwait(false);
+
+// 8. Sequencer - Last Action despite failure - Linear
+//
+string anotherLinearSequencerStaticId = StorageUtility.EscapeStorageKey(Guid.NewGuid().ToString());
+var anotherlinearSequencerBuilder = SequencerBuilder
+    .Create(JobConstants.GetJobPartition(), anotherLinearSequencerStaticId)
+    .WithAction(
+        "SometimesFailsJob",
+        typeof(SometimesFailsJob).FullName,
+        JsonConvert.SerializeObject(
+            //
+            // Fail on purpose
+            //
+            new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 1 }
+        )
+    )
+    .WithAction(
+        "CheckpointingJob",
+        typeof(CheckpointingJob).FullName,
+        JsonConvert.SerializeObject(
+            new CheckpointingJobMetadata
+            {
+                CallerName = "AzureArcData",
+                CurrentStep = 0,
+                MaxSteps = -1
+            }
+        )
+    )
+    //
+    // Runs regardless of failure or success
+    //
+    .WithLastAction(
+        typeof(AlwaysSucceedJob).FullName,
+        JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" }),
+        action =>
+        {
+            action.WithTimeout(TimeSpan.FromSeconds(265));
+        }
+    )
+    .WithDependency("SometimesFailsJob", "CheckpointingJob");
+
+await jobManagementClient
+    .CreateSequencer(SequencerType.Linear, anotherlinearSequencerBuilder)
+    .ConfigureAwait(false);
+
+// 9. Sequencer - Last Action despite failure - Distributed
+//
+string anotherDistributedSequencerDynamicId = StorageUtility.EscapeStorageKey(
+    Guid.NewGuid().ToString()
+);
+var anotherDistributedSequencerBuilder = SequencerBuilder
+    .Create(JobConstants.GetJobPartition(), anotherDistributedSequencerDynamicId)
+    .WithAction(
+        "SometimesFailsJob",
+        typeof(SometimesFailsJob).FullName,
+        JsonConvert.SerializeObject(
+            //
+            // Fail on purpose
+            //
+            new SometimesFailsJobMetadata { CallerName = "AzureArcData", ChanceOfFailure = 1 }
+        )
+    )
+    .WithAction(
+        "CheckpointingJob",
+        typeof(CheckpointingJob).FullName,
+        JsonConvert.SerializeObject(
+            new CheckpointingJobMetadata
+            {
+                CallerName = "AzureArcData",
+                CurrentStep = 0,
+                MaxSteps = -1
+            }
+        )
+    )
+    //
+    // Runs regardless of failure or success
+    //
+    .WithLastAction(
+        typeof(AlwaysSucceedJob).FullName,
+        JsonConvert.SerializeObject(new AlwaysSucceedJobMetadata { CallerName = "AzureArcData" }),
+        action =>
+        {
+            action.WithTimeout(TimeSpan.FromSeconds(265));
+        }
+    )
+    .WithDependency("SometimesFailsJob", "CheckpointingJob");
+
+await jobManagementClient
+    .CreateSequencer(SequencerType.Distributed, anotherDistributedSequencerBuilder)
     .ConfigureAwait(false);
 
 // Print state
@@ -468,7 +561,7 @@ while (true)
                     {
                         Console.BackgroundColor = ConsoleColor.Red;
                         Console.ForegroundColor = ConsoleColor.White;
-                        Console.WriteLine($"ActionId: {action.ActionId} failed");
+                        Console.WriteLine($"ActionId: {action.ActionId} did not succeed");
                         Console.ResetColor();
                     }
                 }

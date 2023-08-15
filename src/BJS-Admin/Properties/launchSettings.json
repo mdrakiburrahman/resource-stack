@@ -3,7 +3,7 @@
     "BJSAdmin": {
       "commandName": "Project",
       "environmentVariables": {
-        "JOB_BACKEND": "sqlserver"
+        "JOB_BACKEND": "cosmosdb"
       }
     }
   }

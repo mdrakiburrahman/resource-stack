@@ -127,7 +127,7 @@ Set this in the `App.config`
 <?xml version="1.0" encoding="utf-8" ?>
 <configuration>
   <appSettings>
-    <add key="sqlServerConnectionString" value="Server=localhost;Database=master;Trusted_Connection=True;" />
+    <add key="sqlServerConnectionString" value="Server=localhost;Database=msdb;Trusted_Connection=True;" />
   </appSettings>
 </configuration>
 ```
@@ -135,7 +135,7 @@ Set this in the `App.config`
 And, cleanup logic for tables generated:
 
 ```sql
-USE master;
+USE msdb;
 
 -----------------------
 -- VIEW

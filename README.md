@@ -214,7 +214,7 @@ END
 -----------------------
 -- VERIFY
 -----------------------
-SELECT * FROM master.sys.objects
+SELECT * FROM msdb.sys.objects
 WHERE is_ms_shipped=0
 ```
 

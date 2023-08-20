@@ -61,7 +61,12 @@ switch (backend)
             executionAffinity: "global",
             eventSource: new BJSEventSource(),
             encryptionUtility: null,
-            jobsConfigurationProvider: customJobsConfiguration
+            jobsConfigurationProvider: customJobsConfiguration,
+            //
+            // SQL Server doesn't need fancy partitioning like Cosmos DB does
+            //
+            numPartitionsInJobDefinitionsTable: 1,
+            numPartitionsInJobTriggersQueue: 1
         );
 
         break;

@@ -33,6 +33,17 @@ namespace Microsoft.AzureArcData.Sample.Common.Settings
         public override TimeSpan DefaultSequencerRetention { get; }
 
         /// <summary>
+        /// Gets the number of partitions in the jobs definition table.
+        /// </summary>
+        public override int NumPartitionsInJobDefinitionsTable =>
+            this.JobOptions.NumPartitionsInJobDefinitionsTable;
+        /// <summary>
+        /// Gets the number of partitions in the jobs trigger queue table.
+        /// </summary>
+        public override int NumPartitionsInJobTriggersQueue =>
+            this.JobOptions.NumPartitionsInJobTriggersQueue;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="FusionJobsConfiguration"/> class.
         /// </summary>
         /// <param name="jobOptions">The job options.</param>

@@ -13,7 +13,10 @@
   - [Exploring different state-stores](#exploring-different-state-stores)
     - [1. Azure Storage](#1-azure-storage)
     - [2. Cosmos DB](#2-cosmos-db)
-    - [3. SQL](#3-sql)
+    - [3. SQL Server](#3-sql-server)
+      - [Full Admin](#full-admin)
+      - [Least privilege](#least-privilege)
+      - [SQL Cleanup](#sql-cleanup)
     - [4. In-Memory](#4-in-memory)
 
 <!-- /TOC -->
@@ -120,7 +123,9 @@ See above.
 
 ---
 
-### 3. SQL
+### 3. SQL Server
+
+#### Full Admin
 
 Set this in the `App.config`
 ```xml
@@ -131,6 +136,103 @@ Set this in the `App.config`
   </appSettings>
 </configuration>
 ```
+
+#### Least privilege
+
+> You must enable [mixed-mode](https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/change-server-authentication-mode?view=sql-server-ver16) for the below demo to work
+
+The script below contains the add and removal permissions:
+
+```sql
+----------------------------
+-- ADD PERMISSIONS AND LOGIN
+----------------------------
+
+USE [master];
+IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'bjs')
+BEGIN
+	-- Create server login
+	USE [master]; CREATE LOGIN bjs WITH PASSWORD = 'password123!';
+
+	-- Create database user
+	USE [msdb]; CREATE USER bjs FOR LOGIN bjs;
+
+	-- Grant database roles
+	USE [msdb]; GRANT CREATE TABLE TO bjs;
+	USE [msdb]; GRANT CONTROL, EXECUTE, ALTER ANY SCHEMA TO bjs;
+	USE [msdb]; GRANT CREATE TYPE TO bjs;
+	USE [msdb]; ALTER ROLE db_datareader ADD MEMBER bjs;
+	USE [msdb]; ALTER ROLE db_datawriter ADD MEMBER bjs;
+
+END
+GO
+
+---------------------
+-- REMOVE PERMISSIONS
+---------------------
+
+USE [msdb];
+IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'bjs')
+BEGIN
+
+   -- Drop database roles
+    USE [msdb]; DENY CREATE TABLE TO bjs;
+	USE [msdb]; DENY CONTROL, EXECUTE, ALTER ANY SCHEMA TO bjs;
+	USE [msdb]; DENY CREATE TYPE TO bjs;
+	USE [msdb]; ALTER ROLE db_datareader DROP MEMBER bjs;
+	USE [msdb]; ALTER ROLE db_datawriter DROP MEMBER bjs;
+
+    -- Drop database user
+    USE [msdb]; DROP USER bjs;
+END
+
+---------------
+-- REMOVE LOGIN
+---------------
+USE [master];
+IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'bjs')
+BEGIN
+	-- Kill connections
+	DECLARE @SessionID INT;
+	DECLARE @SQL NVARCHAR(MAX);
+
+	-- Create a temporary table to store session IDs
+	USE master; CREATE TABLE #ActiveSessions (SessionID INT);
+
+	-- Insert active session IDs into the temporary table
+	USE master; INSERT INTO #ActiveSessions (SessionID) SELECT session_id FROM sys.dm_exec_sessions WHERE login_name = 'bjs';
+
+	-- Loop through and kill each active session
+	WHILE EXISTS (SELECT 1 FROM #ActiveSessions)
+	BEGIN
+		USE master;
+		SELECT TOP 1 @SessionID = SessionID FROM #ActiveSessions;
+		SET @SQL = 'KILL ' + CAST(@SessionID AS NVARCHAR(10));
+		EXEC sp_executesql @SQL;
+		DELETE FROM #ActiveSessions WHERE SessionID = @SessionID;
+	END
+
+	-- Drop the temporary table
+	USE master; DROP TABLE #ActiveSessions;
+
+	-- Drop the login
+	USE master; DROP LOGIN bjs;
+END
+GOO
+```
+
+Update `App.config`:
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <appSettings>
+    <add key="sqlServerConnectionString" value="Server=localhost;Database=msdb;User Id=bjs;Password=password123!" />
+  </appSettings>
+</configuration>
+```
+
+
+#### SQL Cleanup
 
 And, cleanup logic for tables generated:
 

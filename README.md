@@ -180,10 +180,10 @@ IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'bjs')
 BEGIN
 
 	-- Drop database roles
-	USE [msdb]; DENY CREATE TABLE TO bjs;
-	USE [msdb]; DENY ALTER ANY SCHEMA TO bjs
-	USE [msdb]; DENY CREATE TYPE TO bjs;
-	USE [msdb]; DENY EXECUTE TO bjs;
+	USE [msdb]; REVOKE CREATE TABLE FROM bjs;
+	USE [msdb]; REVOKE ALTER ANY SCHEMA FROM bjs
+	USE [msdb]; REVOKE CREATE TYPE FROM bjs;
+	USE [msdb]; REVOKE EXECUTE FROM bjs;
 
 	-- Revoke membership
 	USE [msdb]; ALTER ROLE db_datawriter DROP MEMBER bjs;

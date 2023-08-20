@@ -151,6 +151,7 @@ The script below contains the add and removal permissions:
 USE [master];
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'bjs')
 BEGIN
+
 	-- Create server login
 	USE [master]; CREATE LOGIN bjs WITH PASSWORD = 'password123!';
 
@@ -159,10 +160,11 @@ BEGIN
 
 	-- Grant database roles
 	USE [msdb]; GRANT CREATE TABLE TO bjs;
-	USE [msdb]; GRANT CONTROL, EXECUTE, ALTER ANY SCHEMA TO bjs;
+	USE [msdb]; GRANT ALTER ANY SCHEMA TO bjs;
+	USE [msdb]; ALTER ROLE db_datawriter ADD MEMBER bjs;
 	USE [msdb]; GRANT CREATE TYPE TO bjs;
 	USE [msdb]; ALTER ROLE db_datareader ADD MEMBER bjs;
-	USE [msdb]; ALTER ROLE db_datawriter ADD MEMBER bjs;
+	USE [msdb]; GRANT EXECUTE TO bjs;
 
 END
 GO
@@ -177,13 +179,15 @@ BEGIN
 
 	-- Drop database roles
 	USE [msdb]; DENY CREATE TABLE TO bjs;
-	USE [msdb]; DENY CONTROL, EXECUTE, ALTER ANY SCHEMA TO bjs;
+	USE [msdb]; DENY ALTER ANY SCHEMA TO bjs
+	USE [msdb]; ALTER ROLE db_datawriter DROP MEMBER bjs;
 	USE [msdb]; DENY CREATE TYPE TO bjs;
 	USE [msdb]; ALTER ROLE db_datareader DROP MEMBER bjs;
-	USE [msdb]; ALTER ROLE db_datawriter DROP MEMBER bjs;
-	
+	USE [msdb]; DENY EXECUTE TO bjs;
+
 	-- Drop database user
 	USE [msdb]; DROP USER bjs;
+
 END
 
 ---------------

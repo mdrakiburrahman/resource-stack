@@ -218,7 +218,7 @@ BEGIN
 	-- Drop the login
 	USE master; DROP LOGIN bjs;
 END
-GOO
+GO
 ```
 
 Update `App.config`:

@@ -175,15 +175,15 @@ USE [msdb];
 IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'bjs')
 BEGIN
 
-   -- Drop database roles
-    USE [msdb]; DENY CREATE TABLE TO bjs;
+	-- Drop database roles
+	USE [msdb]; DENY CREATE TABLE TO bjs;
 	USE [msdb]; DENY CONTROL, EXECUTE, ALTER ANY SCHEMA TO bjs;
 	USE [msdb]; DENY CREATE TYPE TO bjs;
 	USE [msdb]; ALTER ROLE db_datareader DROP MEMBER bjs;
 	USE [msdb]; ALTER ROLE db_datawriter DROP MEMBER bjs;
-
-    -- Drop database user
-    USE [msdb]; DROP USER bjs;
+	
+	-- Drop database user
+	USE [msdb]; DROP USER bjs;
 END
 
 ---------------

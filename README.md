@@ -152,21 +152,27 @@ USE [master];
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'bjs')
 BEGIN
 
-	-- Create server login
+	-- Create Database Custom Role
+	USE [msdb]; CREATE ROLE SQLArcExtensionUserRole;
+
+	-- Grant Database Custom Role permissions
+	USE [msdb]; GRANT CREATE TABLE TO SQLArcExtensionUserRole;
+	USE [msdb]; GRANT ALTER ANY SCHEMA TO SQLArcExtensionUserRole;
+	USE [msdb]; GRANT CREATE TYPE TO SQLArcExtensionUserRole;
+	USE [msdb]; GRANT EXECUTE TO SQLArcExtensionUserRole;
+
+	-- Grant membership to Database Custom Role
+	USE [msdb]; ALTER ROLE db_datawriter ADD MEMBER SQLArcExtensionUserRole;
+	USE [msdb]; ALTER ROLE db_datareader ADD MEMBER SQLArcExtensionUserRole;
+
+	-- Create Server Login
 	USE [master]; CREATE LOGIN bjs WITH PASSWORD = 'password123!';
 
-	-- Create database user
+	-- Create Database user for runtime
 	USE [msdb]; CREATE USER bjs FOR LOGIN bjs;
 
-	-- Grant database roles
-	USE [msdb]; GRANT CREATE TABLE TO bjs;
-	USE [msdb]; GRANT ALTER ANY SCHEMA TO bjs;
-	USE [msdb]; GRANT CREATE TYPE TO bjs;
-	USE [msdb]; GRANT EXECUTE TO bjs;
-
-	-- Grant membership
-	USE [msdb]; ALTER ROLE db_datawriter ADD MEMBER bjs;
-	USE [msdb]; ALTER ROLE db_datareader ADD MEMBER bjs;
+	-- Add our user to that Custom Role
+	USE [msdb]; ALTER ROLE SQLArcExtensionUserRole ADD MEMBER bjs;
 
 END
 GO
@@ -179,18 +185,21 @@ USE [msdb];
 IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'bjs')
 BEGIN
 
-	-- Drop database roles
-	USE [msdb]; REVOKE CREATE TABLE FROM bjs;
-	USE [msdb]; REVOKE ALTER ANY SCHEMA FROM bjs
-	USE [msdb]; REVOKE CREATE TYPE FROM bjs;
-	USE [msdb]; REVOKE EXECUTE FROM bjs;
+	-- Drop Database roles from Custom Role
+	USE [msdb]; REVOKE CREATE TABLE FROM SQLArcExtensionUserRole;
+	USE [msdb]; REVOKE ALTER ANY SCHEMA FROM SQLArcExtensionUserRole
+	USE [msdb]; REVOKE CREATE TYPE FROM SQLArcExtensionUserRole;
+	USE [msdb]; REVOKE EXECUTE FROM SQLArcExtensionUserRole;
 
-	-- Revoke membership
-	USE [msdb]; ALTER ROLE db_datawriter DROP MEMBER bjs;
-	USE [msdb]; ALTER ROLE db_datareader DROP MEMBER bjs;
+	-- Revoke Memberships of Custom Role
+	USE [msdb]; ALTER ROLE db_datawriter DROP MEMBER SQLArcExtensionUserRole;
+	USE [msdb]; ALTER ROLE db_datareader DROP MEMBER SQLArcExtensionUserRole;
 
-	-- Drop database user
+	-- Drop Database User
 	USE [msdb]; DROP USER bjs;
+
+	-- Drop the Database Custom role
+	USE [msdb]; DROP ROLE SQLArcExtensionUserRole;
 
 END
 

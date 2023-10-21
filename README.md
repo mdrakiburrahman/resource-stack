@@ -330,6 +330,10 @@ BEGIN
     PRINT 'Type "arcJobDefinitionsOperationType" dropped successfully.';
 END
 
+-- Schemas -------------
+DROP SCHEMA IF EXISTS "dq";
+DROP SCHEMA IF EXISTS "dt";
+
 -----------------------
 -- VERIFY
 -----------------------
